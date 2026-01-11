@@ -1,0 +1,15 @@
+services:
+  php:
+    container_name: "quick-php"
+    build: .
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./app/:/app
+#       - caddy_data:/data
+#       - caddy_config:/config
+
+# volumes:
+#   caddy_data:
+#   caddy_config:
