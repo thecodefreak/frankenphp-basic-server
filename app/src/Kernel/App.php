@@ -10,12 +10,15 @@ use App\Content\ImageStore;
 use App\Content\PostGenerator;
 use App\Content\PostRepository;
 use App\Content\TemplateRepository;
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TemplateController;
 use App\Http\ErrorMiddleware;
+use App\Instagram\AccountRepository;
+use App\Instagram\InstagramClient;
 use App\Support\Db;
 use App\Support\Http;
 use App\Support\Migrator;
@@ -168,6 +171,22 @@ final class App implements ContainerInterface
             $c->get(PostGenerator::class),
             $c->get(UsageRepository::class),
         ));
+
+        $this->set(AccountRepository::class, static fn (self $c): AccountRepository => new AccountRepository(
+            $c->db(),
+            $c->get(Secrets::class),
+        ));
+
+        $this->set(InstagramClient::class, static fn (self $c): InstagramClient => new InstagramClient(
+            $c->get(Http::class),
+            $c->get(Secrets::class),
+        ));
+
+        $this->set(AccountController::class, static fn (self $c): AccountController => new AccountController(
+            $c->get(View::class),
+            $c->get(AccountRepository::class),
+            $c->get(InstagramClient::class),
+        ));
     }
 
     private function registerRoutes(Slim $slim): void
@@ -202,5 +221,13 @@ final class App implements ContainerInterface
         $slim->post('/posts/{id}/retry', PostController::class . ':retry');
         $slim->post('/posts/{id}/publish-now', PostController::class . ':publishNow');
         $slim->post('/posts/{id}/cancel', PostController::class . ':cancel');
+
+        $slim->get('/accounts', AccountController::class . ':index');
+        $slim->get('/accounts/new', AccountController::class . ':create');
+        $slim->post('/accounts', AccountController::class . ':store');
+        $slim->get('/accounts/{id}/edit', AccountController::class . ':edit');
+        $slim->post('/accounts/{id}', AccountController::class . ':update');
+        $slim->post('/accounts/{id}/delete', AccountController::class . ':delete');
+        $slim->post('/accounts/{id}/test', AccountController::class . ':test');
     }
 }
