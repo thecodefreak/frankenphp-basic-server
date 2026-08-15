@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Notify\Webhook;
 use App\Support\Settings;
 use App\View;
 use DateTimeZone;
@@ -22,6 +23,7 @@ final class SettingsController
     public function __construct(
         private readonly View $view,
         private readonly Settings $settings,
+        private readonly Webhook $webhook,
     ) {
     }
 
@@ -73,6 +75,14 @@ final class SettingsController
 
         $this->settings->setMany($values);
         flash('Settings saved.');
+
+        return redirect($response, '/settings');
+    }
+
+    public function webhookTest(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $this->webhook->test();
+        flash('Test notification sent (delivery is best-effort — check your webhook destination).');
 
         return redirect($response, '/settings');
     }

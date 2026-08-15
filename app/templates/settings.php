@@ -57,5 +57,8 @@
 
     <div class="form-actions">
         <button type="submit" class="btn btn-primary">Save settings</button>
+        <?php if (($settings['webhook_url'] ?? '') !== ''): ?>
+            <button type="submit" formaction="/settings/webhook-test" class="btn">Send test notification</button>
+        <?php endif; ?>
     </div>
 </form>

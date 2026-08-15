@@ -19,6 +19,8 @@ use App\Http\Controllers\TemplateController;
 use App\Http\ErrorMiddleware;
 use App\Instagram\AccountRepository;
 use App\Instagram\InstagramClient;
+use App\Notify\Webhook;
+use App\Scheduling\Scheduler;
 use App\Support\Db;
 use App\Support\Http;
 use App\Support\Migrator;
@@ -116,9 +118,15 @@ final class App implements ContainerInterface
             $c->settings(),
         ));
 
+        $this->set(Webhook::class, static fn (self $c): Webhook => new Webhook(
+            $c->get(Http::class),
+            $c->settings(),
+        ));
+
         $this->set(SettingsController::class, static fn (self $c): SettingsController => new SettingsController(
             $c->get(View::class),
             $c->settings(),
+            $c->get(Webhook::class),
         ));
 
         $this->set(ProviderRepository::class, static fn (self $c): ProviderRepository => new ProviderRepository(
@@ -187,6 +195,17 @@ final class App implements ContainerInterface
             $c->get(AccountRepository::class),
             $c->get(InstagramClient::class),
         ));
+
+        $this->set(Scheduler::class, static fn (self $c): Scheduler => new Scheduler(
+            $c->get(TemplateRepository::class),
+            $c->get(PostRepository::class),
+            $c->get(PostGenerator::class),
+            $c->get(AccountRepository::class),
+            $c->get(InstagramClient::class),
+            $c->get(Webhook::class),
+            $c->settings(),
+            $c->get(ImageStore::class),
+        ));
     }
 
     private function registerRoutes(Slim $slim): void
@@ -197,6 +216,7 @@ final class App implements ContainerInterface
 
         $slim->get('/settings', SettingsController::class . ':edit');
         $slim->post('/settings', SettingsController::class . ':update');
+        $slim->post('/settings/webhook-test', SettingsController::class . ':webhookTest');
 
         $slim->get('/providers', ProviderController::class . ':index');
         $slim->get('/providers/new', ProviderController::class . ':create');
