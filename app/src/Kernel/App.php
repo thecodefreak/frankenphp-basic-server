@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Kernel;
 
+use App\Ai\ProviderFactory;
+use App\Ai\ProviderRepository;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\ErrorMiddleware;
 use App\Support\Db;
@@ -107,6 +110,22 @@ final class App implements ContainerInterface
             $c->get(View::class),
             $c->settings(),
         ));
+
+        $this->set(ProviderRepository::class, static fn (self $c): ProviderRepository => new ProviderRepository(
+            $c->db(),
+            $c->get(Secrets::class),
+        ));
+
+        $this->set(ProviderFactory::class, static fn (self $c): ProviderFactory => new ProviderFactory(
+            $c->get(Http::class),
+            $c->get(Secrets::class),
+        ));
+
+        $this->set(ProviderController::class, static fn (self $c): ProviderController => new ProviderController(
+            $c->get(View::class),
+            $c->get(ProviderRepository::class),
+            $c->get(ProviderFactory::class),
+        ));
     }
 
     private function registerRoutes(Slim $slim): void
@@ -117,5 +136,13 @@ final class App implements ContainerInterface
 
         $slim->get('/settings', SettingsController::class . ':edit');
         $slim->post('/settings', SettingsController::class . ':update');
+
+        $slim->get('/providers', ProviderController::class . ':index');
+        $slim->get('/providers/new', ProviderController::class . ':create');
+        $slim->post('/providers', ProviderController::class . ':store');
+        $slim->get('/providers/{id}/edit', ProviderController::class . ':edit');
+        $slim->post('/providers/{id}', ProviderController::class . ':update');
+        $slim->post('/providers/{id}/delete', ProviderController::class . ':delete');
+        $slim->post('/providers/{id}/test', ProviderController::class . ':test');
     }
 }
