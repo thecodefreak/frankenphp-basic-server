@@ -6,8 +6,12 @@ namespace App\Kernel;
 
 use App\Ai\ProviderFactory;
 use App\Ai\ProviderRepository;
+use App\Content\ImageStore;
+use App\Content\PostGenerator;
+use App\Content\PostRepository;
 use App\Content\TemplateRepository;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TemplateController;
@@ -17,6 +21,7 @@ use App\Support\Http;
 use App\Support\Migrator;
 use App\Support\Secrets;
 use App\Support\Settings;
+use App\Usage\UsageRepository;
 use App\View;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
@@ -138,6 +143,31 @@ final class App implements ContainerInterface
             $c->db(),
             $c->settings(),
         ));
+
+        $this->set(ImageStore::class, static fn (self $c): ImageStore => new ImageStore(
+            $c->settings(),
+            app_path('public/storage/images'),
+        ));
+
+        $this->set(PostRepository::class, static fn (self $c): PostRepository => new PostRepository($c->db()));
+
+        $this->set(UsageRepository::class, static fn (self $c): UsageRepository => new UsageRepository($c->db()));
+
+        $this->set(PostGenerator::class, static fn (self $c): PostGenerator => new PostGenerator(
+            $c->get(ProviderFactory::class),
+            $c->get(ProviderRepository::class),
+            $c->get(ImageStore::class),
+            $c->get(PostRepository::class),
+            $c->get(UsageRepository::class),
+        ));
+
+        $this->set(PostController::class, static fn (self $c): PostController => new PostController(
+            $c->get(View::class),
+            $c->get(PostRepository::class),
+            $c->get(TemplateRepository::class),
+            $c->get(PostGenerator::class),
+            $c->get(UsageRepository::class),
+        ));
     }
 
     private function registerRoutes(Slim $slim): void
@@ -164,5 +194,13 @@ final class App implements ContainerInterface
         $slim->get('/templates/{id}/edit', TemplateController::class . ':edit');
         $slim->post('/templates/{id}', TemplateController::class . ':update');
         $slim->post('/templates/{id}/delete', TemplateController::class . ':delete');
+
+        $slim->get('/posts', PostController::class . ':index');
+        $slim->post('/posts/generate', PostController::class . ':generateNow');
+        $slim->get('/posts/{id}', PostController::class . ':show');
+        $slim->post('/posts/{id}', PostController::class . ':update');
+        $slim->post('/posts/{id}/retry', PostController::class . ':retry');
+        $slim->post('/posts/{id}/publish-now', PostController::class . ':publishNow');
+        $slim->post('/posts/{id}/cancel', PostController::class . ':cancel');
     }
 }
