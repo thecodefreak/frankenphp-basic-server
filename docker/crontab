@@ -1,0 +1,4 @@
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+TZ=UTC
+
+* * * * * root flock -n /var/lock/insta-scheduler.lock php /app/bin/scheduler.php >> /proc/1/fd/1 2>&1

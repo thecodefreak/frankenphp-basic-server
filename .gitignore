@@ -1,0 +1,7 @@
+.env
+app/vendor/
+app/public/storage/images/*
+!app/public/storage/images/.gitkeep
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

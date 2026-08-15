@@ -1,0 +1,11 @@
+services:
+  php:
+    environment:
+      APP_DEBUG: "1"
+    volumes:
+      - ./app/src:/app/src
+      - ./app/bin:/app/bin
+      - ./app/templates:/app/templates
+      - ./app/migrations:/app/migrations
+      - ./app/public/assets:/app/public/assets
+      - ./app/public/index.php:/app/public/index.php

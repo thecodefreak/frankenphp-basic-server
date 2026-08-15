@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+compose*.yml
+README.md
+CLAUDE.md
+app/vendor
+app/public/storage
+*.sqlite*
