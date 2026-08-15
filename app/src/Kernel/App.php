@@ -6,9 +6,11 @@ namespace App\Kernel;
 
 use App\Ai\ProviderFactory;
 use App\Ai\ProviderRepository;
+use App\Content\TemplateRepository;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\TemplateController;
 use App\Http\ErrorMiddleware;
 use App\Support\Db;
 use App\Support\Http;
@@ -126,6 +128,16 @@ final class App implements ContainerInterface
             $c->get(ProviderRepository::class),
             $c->get(ProviderFactory::class),
         ));
+
+        $this->set(TemplateRepository::class, static fn (self $c): TemplateRepository => new TemplateRepository($c->db()));
+
+        $this->set(TemplateController::class, static fn (self $c): TemplateController => new TemplateController(
+            $c->get(View::class),
+            $c->get(TemplateRepository::class),
+            $c->get(ProviderRepository::class),
+            $c->db(),
+            $c->settings(),
+        ));
     }
 
     private function registerRoutes(Slim $slim): void
@@ -144,5 +156,13 @@ final class App implements ContainerInterface
         $slim->post('/providers/{id}', ProviderController::class . ':update');
         $slim->post('/providers/{id}/delete', ProviderController::class . ':delete');
         $slim->post('/providers/{id}/test', ProviderController::class . ':test');
+
+        $slim->get('/templates', TemplateController::class . ':index');
+        $slim->get('/templates/new', TemplateController::class . ':create');
+        $slim->post('/templates', TemplateController::class . ':store');
+        $slim->post('/templates/preview-slots', TemplateController::class . ':previewSlots');
+        $slim->get('/templates/{id}/edit', TemplateController::class . ':edit');
+        $slim->post('/templates/{id}', TemplateController::class . ':update');
+        $slim->post('/templates/{id}/delete', TemplateController::class . ':delete');
     }
 }
