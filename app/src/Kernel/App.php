@@ -11,6 +11,7 @@ use App\Content\PostGenerator;
 use App\Content\PostRepository;
 use App\Content\TemplateRepository;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProviderController;
@@ -116,6 +117,7 @@ final class App implements ContainerInterface
             $c->get(View::class),
             $c->db(),
             $c->settings(),
+            $c->get(UsageRepository::class),
         ));
 
         $this->set(Webhook::class, static fn (self $c): Webhook => new Webhook(
@@ -206,6 +208,11 @@ final class App implements ContainerInterface
             $c->settings(),
             $c->get(ImageStore::class),
         ));
+
+        $this->set(CalendarController::class, static fn (self $c): CalendarController => new CalendarController(
+            $c->get(View::class),
+            $c->get(PostRepository::class),
+        ));
     }
 
     private function registerRoutes(Slim $slim): void
@@ -249,5 +256,8 @@ final class App implements ContainerInterface
         $slim->post('/accounts/{id}', AccountController::class . ':update');
         $slim->post('/accounts/{id}/delete', AccountController::class . ':delete');
         $slim->post('/accounts/{id}/test', AccountController::class . ':test');
+
+        $slim->get('/calendar', CalendarController::class . ':index');
+        $slim->get('/calendar/data', CalendarController::class . ':data');
     }
 }
