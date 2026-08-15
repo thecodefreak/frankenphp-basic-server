@@ -25,3 +25,4 @@
 - Add .gitignore and .dockerignore as required and update as required
 - Generate and update README.md 
 - Keys like, OPENAI, CLAUDE, or any secretive token should be read directly but can be used by code you write, but never read them
+- do not add co-authored in commit message
