@@ -51,26 +51,31 @@ final class DashboardController
         ]);
     }
 
+    /** @return array<array{message: string, action: string, href: string}> */
     private function warnings(): array
     {
         $warnings = [];
 
         if ($this->settings->publicBaseUrl() === '') {
-            $warnings[] = 'No public base URL is configured. Instagram fetches images from your server, so publishing will fail until this is set.';
+            $warnings[] = ['message' => 'No public base URL set. Instagram downloads images from your server, so publishing will fail without it.', 'action' => 'Set URL', 'href' => '/settings'];
         } elseif (!str_starts_with($this->settings->publicBaseUrl(), 'https://')) {
-            $warnings[] = 'The public base URL is not HTTPS. Instagram requires a publicly reachable HTTPS URL to fetch images.';
-        }
-
-        if ((int) $this->db->value('SELECT COUNT(*) FROM instagram_accounts') === 0) {
-            $warnings[] = 'No Instagram account is connected yet.';
+            $warnings[] = ['message' => 'The public base URL is not HTTPS. Instagram only fetches images over HTTPS.', 'action' => 'Fix URL', 'href' => '/settings'];
         }
 
         if ((int) $this->db->value("SELECT COUNT(*) FROM ai_providers WHERE kind = 'text'") === 0) {
-            $warnings[] = 'No text provider is configured, so captions cannot be generated.';
+            $warnings[] = ['message' => 'No text provider configured — captions cannot be generated.', 'action' => 'Add provider', 'href' => '/providers/new'];
         }
 
         if ((int) $this->db->value("SELECT COUNT(*) FROM ai_providers WHERE kind = 'image'") === 0) {
-            $warnings[] = 'No image provider is configured, so post images cannot be generated.';
+            $warnings[] = ['message' => 'No image provider configured — post images cannot be generated.', 'action' => 'Add provider', 'href' => '/providers/new'];
+        }
+
+        if ((int) $this->db->value('SELECT COUNT(*) FROM instagram_accounts') === 0) {
+            $warnings[] = ['message' => 'No Instagram account connected yet.', 'action' => 'Connect', 'href' => '/accounts/new'];
+        }
+
+        if ((int) $this->db->value('SELECT COUNT(*) FROM templates WHERE is_active = 1') === 0) {
+            $warnings[] = ['message' => 'No active template — nothing is scheduled to post.', 'action' => 'Activate', 'href' => '/templates'];
         }
 
         return $warnings;

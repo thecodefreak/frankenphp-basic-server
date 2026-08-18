@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Scheduling;
 
-use App\Ai\ProviderException;
 use App\Content\ImageStore;
 use App\Content\PostGenerator;
 use App\Content\PostRepository;
@@ -16,6 +15,7 @@ use App\Instagram\InstagramException;
 use App\Notify\Webhook;
 use App\Support\Settings;
 use Generator;
+use Throwable;
 
 final readonly class Scheduler
 {
@@ -76,7 +76,7 @@ final readonly class Scheduler
             try {
                 $this->generator->generate($template, (int) $post['id']);
                 yield sprintf('generate: post #%d ready', $post['id']);
-            } catch (ProviderException $exception) {
+            } catch (Throwable $exception) {
                 $this->posts->recordRetry((int) $post['id'], PostStatus::Pending, $exception->getMessage());
                 $this->notifyIfFailed((int) $post['id']);
                 yield sprintf('generate: post #%d failed attempt (%s)', $post['id'], $exception->getMessage());

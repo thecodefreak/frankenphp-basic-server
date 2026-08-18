@@ -32,13 +32,62 @@ final readonly class PostRepository
         );
     }
 
+    /** @param array{status?: string, template_id?: int} $filters */
+    public function filtered(array $filters, int $limit, int $offset): array
+    {
+        [$where, $params] = $this->filterClause($filters);
+
+        return $this->db->select(
+            "SELECT p.*, t.name AS template_name, COALESCE(SUM(u.cost_usd), 0) AS cost_usd
+             FROM posts p
+             LEFT JOIN templates t ON t.id = p.template_id
+             LEFT JOIN token_usage u ON u.post_id = p.id
+             {$where}
+             GROUP BY p.id
+             ORDER BY COALESCE(p.scheduled_at, p.created_at) DESC
+             LIMIT ? OFFSET ?",
+            [...$params, $limit, $offset]
+        );
+    }
+
+    public function countFiltered(array $filters): int
+    {
+        [$where, $params] = $this->filterClause($filters);
+
+        return (int) $this->db->value("SELECT COUNT(*) FROM posts p {$where}", $params);
+    }
+
+    /** Posts in a UTC window with their total AI cost, for the calendar. */
     public function betweenUtc(string $fromUtc, string $untilUtc): array
     {
         return $this->db->select(
-            "SELECT p.*, t.name AS template_name FROM posts p LEFT JOIN templates t ON t.id = p.template_id
-             WHERE p.scheduled_at >= ? AND p.scheduled_at < ? ORDER BY p.scheduled_at",
+            "SELECT p.*, t.name AS template_name, COALESCE(SUM(u.cost_usd), 0) AS cost_usd
+             FROM posts p
+             LEFT JOIN templates t ON t.id = p.template_id
+             LEFT JOIN token_usage u ON u.post_id = p.id
+             WHERE p.scheduled_at >= ? AND p.scheduled_at < ?
+             GROUP BY p.id
+             ORDER BY p.scheduled_at",
             [$fromUtc, $untilUtc]
         );
+    }
+
+    private function filterClause(array $filters): array
+    {
+        $conditions = [];
+        $params = [];
+
+        if (($filters['status'] ?? '') !== '') {
+            $conditions[] = 'p.status = ?';
+            $params[] = $filters['status'];
+        }
+
+        if (($filters['template_id'] ?? 0) > 0) {
+            $conditions[] = 'p.template_id = ?';
+            $params[] = $filters['template_id'];
+        }
+
+        return [$conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions), $params];
     }
 
     /** Creates a pending slot; INSERT OR IGNORE makes materializing idempotent against the (template_id, scheduled_at) unique index. */

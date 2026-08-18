@@ -9,11 +9,12 @@
 
     <label class="field">
         <span class="field-label">Default timezone</span>
-        <select name="default_timezone">
+        <input type="text" name="default_timezone" list="timezone-list" value="<?= e($settings['default_timezone'] ?? 'UTC') ?>" placeholder="Start typing, e.g. Europe/London">
+        <datalist id="timezone-list">
             <?php foreach ($timezones as $timezone): ?>
-                <option value="<?= e($timezone) ?>"<?= ($settings['default_timezone'] ?? 'UTC') === $timezone ? ' selected' : '' ?>><?= e($timezone) ?></option>
+                <option value="<?= e($timezone) ?>"></option>
             <?php endforeach; ?>
-        </select>
+        </datalist>
         <span class="field-hint">Used as the default when creating a template. Each template keeps its own timezone.</span>
     </label>
 
@@ -56,9 +57,9 @@
     </label>
 
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Save settings</button>
+        <button type="submit" class="btn btn-primary" data-busy="Saving…">Save settings</button>
         <?php if (($settings['webhook_url'] ?? '') !== ''): ?>
-            <button type="submit" formaction="/settings/webhook-test" class="btn">Send test notification</button>
+            <button type="submit" formaction="/settings/webhook-test" class="btn" data-busy="Sending…">Send test notification</button>
         <?php endif; ?>
     </div>
 </form>

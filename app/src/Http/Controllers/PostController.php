@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Ai\ProviderException;
 use App\Content\PostGenerator;
 use App\Content\PostRepository;
 use App\Content\PostStatus;
@@ -14,6 +13,7 @@ use App\Usage\UsageRepository;
 use App\View;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Throwable;
 
 final class PostController
 {
@@ -26,12 +26,28 @@ final class PostController
     ) {
     }
 
+    private const PER_PAGE = 25;
+
     public function index(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
+        $query = $request->getQueryParams();
+        $filters = [
+            'status' => in_array($query['status'] ?? '', array_column(PostStatus::cases(), 'value'), true) ? $query['status'] : '',
+            'template_id' => (int) ($query['template_id'] ?? 0),
+        ];
+
+        $total = $this->posts->countFiltered($filters);
+        $pages = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min($pages, max(1, (int) ($query['page'] ?? 1)));
+
         return $this->view->respond($response, 'posts/index', [
             'title' => 'Posts',
-            'posts' => $this->posts->paginated(),
+            'posts' => $this->posts->filtered($filters, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
             'templates' => $this->templates->all(),
+            'filters' => $filters,
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
         ]);
     }
 
@@ -63,7 +79,7 @@ final class PostController
         try {
             $this->generator->generate($template, $postId);
             flash('Post generated. Review it before scheduling.');
-        } catch (ProviderException $exception) {
+        } catch (Throwable $exception) {
             $this->posts->markFatal($postId, $exception->getMessage());
             flash('Generation failed: ' . $exception->getMessage(), 'error');
         }

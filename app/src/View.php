@@ -9,15 +9,24 @@ use RuntimeException;
 
 final class View
 {
+    /** Values a view hands up to the layout, since the two render in separate scopes. */
+    private array $slots = [];
+
     public function __construct(private readonly string $directory)
     {
     }
 
+    public function slot(string $name, mixed $value): void
+    {
+        $this->slots[$name] = $value;
+    }
+
     public function render(string $view, array $data = []): string
     {
+        $this->slots = [];
         $content = $this->capture($view, $data);
 
-        return $this->capture('layout', $data + ['content' => $content]);
+        return $this->capture('layout', $this->slots + $data + ['content' => $content]);
     }
 
     public function partial(string $view, array $data = []): string
